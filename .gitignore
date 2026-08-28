@@ -1,0 +1,14 @@
+# Asset Management data files
+assets.json
+asset_counter.json
+
+# Python cache files
+__pycache__/
+*.pyc
+
+# Virtual environment
+.venv/
+venv/
+
+# VS Code local settings
+.vscode/
