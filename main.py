@@ -1,5 +1,7 @@
+import re 
 import json
 import os
+from datetime import datetime
 
 DATA_FILE = "assets.json"
 COUNTER_FILE = "asset_counter.json"
@@ -51,6 +53,8 @@ def edit_asset(assets):
     if selected_asset is None:
         print("Asset ID not found.")
         return
+
+# Edit the Name
     print("\nPress Enter to keep the existing value.")
     print("Type C to cancel the edit.")
     new_name = input(
@@ -59,7 +63,7 @@ def edit_asset(assets):
     if new_name.upper() == "C":
         print("Edit cancelled.")
         return
-
+ # Edit the Category
     new_category = input(
         f"Category [{selected_asset['category']}]: "
     ).strip()
@@ -67,31 +71,40 @@ def edit_asset(assets):
             print("Edit cancelled.")
             return
 
+# Edit the Value
     while True:
-        new_value = input(
-            f"Value [{selected_asset['value']}]: "
+        new_value_text = input(
+            f"Value [{float(selected_asset['value']):,.2f}]: "
         ).strip()
 
-        if new_value.upper() == "C":
+        # C = cancel the whole edit
+        if new_value_text.lower() == "c":
             print("Edit cancelled.")
             return
 
-        # Blank means keep existing value
-        if not new_value:
+        # Blank = keep the existing value
+        if not new_value_text:
+            new_value = None
             break
 
-        try:
-            new_value = float(new_value)
+        # Remove commas before validation
+        clean_value = new_value_text.replace(",", "")
 
-            if new_value < 0:
-                print("Asset value cannot be negative.")
-                continue
+        # Allow digits with optional decimal point
+        if not re.fullmatch(r"\d+(\.\d{1,2})?", clean_value):
+            print(
+                "Please enter a valid amount, "
+                "for example 4000000 or 4,000,000.00."
+            )
+            continue
 
-            break
+        new_value = float(clean_value)
 
-        except ValueError:
-            print("Please enter a valid numeric value.")
+        if new_value <= 0:
+            print("Asset value must be greater than zero.")
+            continue
 
+        break
     print("\nProposed changes:")
     print(f"Asset ID: {selected_asset['asset_id']}")
     print(f"Name: {new_name or selected_asset['name']}")
@@ -120,6 +133,20 @@ def edit_asset(assets):
 
     print("Asset updated successfully.")
 
+def get_valid_date(prompt):
+    while True:
+        date_text = input(prompt).strip()
+
+        if date_text.lower() == "c":
+            return None
+
+        try:
+            valid_date = datetime.strptime(date_text, "%d-%m-%Y")
+            return valid_date.strftime("%d-%m-%Y")
+
+        except ValueError:
+            print("Please enter a valid date in DD-MM-YYYY format.")
+
 def add_asset(assets):
     print("\n--- Add New Asset ---")
     print("Type C at any time to cancel.")
@@ -146,34 +173,50 @@ def add_asset(assets):
         print("Category cannot be blank.")
         return
 
+    purchase_date = get_valid_date(
+        "Enter purchase date (DD-MM-YYYY): "
+    )
+
+    if purchase_date is None:
+        print("Asset entry cancelled.")
+        return
+
     # Asset value with validation
     while True:
-        value = input("Enter asset value: ").strip()
+        value_text = input("Enter asset value: ").strip()
 
-        if value.lower() == "c":
+        if value_text.lower() == "c":
             print("Asset entry cancelled.")
             return
 
-        if not value:
+        if not value_text:
             print("Asset value cannot be blank.")
             continue
 
-        try:
-            value = float(value)
+        # Remove commas before validation
+        clean_value = value_text.replace(",", "")
 
-            if value < 0:
-                print("Asset value cannot be negative.")
-                continue
+        # Allow digits with optional decimal point
+        if not re.fullmatch(r"\d+(\.\d{1,2})?", clean_value):
+            print(
+                "Please enter a valid amount, "
+                "for example 4000000 or 4,000,000.00"
+            )
+            continue
 
-            break
+        value = float(clean_value)
 
-        except ValueError:
-            print("Please enter a valid numeric value.")
+        if value <= 0:
+            print("Asset value must be greater than zero.")
+            continue
+
+        break
 
     # Review before saving
     print("\nPlease review the asset:")
     print(f"Name: {asset_name}")
     print(f"Category: {category}")
+    print(f"Purchase Date: {purchase_date}")
     print(f"Value: {value:,.2f}")
 
     confirm = input("\nSave this asset? (Y/N): ").strip().lower()
@@ -187,6 +230,7 @@ def add_asset(assets):
         "asset_id": generate_asset_id(),
         "name": asset_name,
         "category": category,
+        "purchase_date": purchase_date,
         "value": value
     }
 
@@ -230,6 +274,7 @@ def list_assets(assets):
         print(f"Asset ID: {asset.get('asset_id', 'Old Record')}")
         print(f"Name: {asset['name']}")
         print(f"Category: {asset['category']}")
+        print(f"Purchase Date: " f"{asset.get('purchase_date', 'Not recorded')}")
         print(f"Value: {asset['value']}")
 
 def delete_asset(assets):
@@ -354,7 +399,6 @@ def main():
 
         else:
             print("Invalid choice.")
-
 
 if __name__ == "__main__":
     main()
