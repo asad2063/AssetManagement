@@ -26,7 +26,8 @@ def show_menu():
     print("3. Edit Asset")
     print("4. Delete Asset")
     print("5. Search Asset")
-    print("6. Exit")
+    print("6. Filter Assets")
+    print("7. Exit")
 
 def edit_asset(assets):
     if not assets:
@@ -474,39 +475,149 @@ def initialize_asset_counter(assets):
         )
 
 def search_asset(assets):
-    search_term = input(
-        "Enter Asset ID or Asset Name to search: "
-    ).strip().lower()
+    while True:
+        search_term = input(
+            "\nEnter Asset ID or Asset Name to search "
+            "(Enter for None, C to return): "
+        ).strip()
 
-    found = False
+        if search_term.lower() == "c":
+            return
 
-    for asset in assets:
-        asset_id = str(asset.get("asset_id", "")).lower()
+        found = False
 
-        # Support both possible name fields
-        asset_name = str(
-            asset.get("asset_name") or asset.get("name") or ""
-        ).lower()
+        for asset in assets:
+            asset_id = str(asset.get("asset_id") or "")
+            asset_name = asset.get("asset_name") or asset.get("name")
 
-        if search_term in asset_id or search_term in asset_name:
+            # Enter or "none" finds assets with no name
+            if search_term == "" or search_term.lower() == "none":
+                match = (
+                    asset_name is None
+                    or str(asset_name).strip() == ""
+                )
 
-            print("\nAsset Found:")
-            print(f"Asset ID: {asset.get('asset_id', 'Not recorded')}")
-            print(
-                f"Name: "
-                f"{asset.get('asset_name') or asset.get('name') or 'Not recorded'}"
-            )
-            print(f"Category: {asset.get('category', 'Not recorded')}")
-            print(f"Value: {asset.get('value', 'Not recorded')}")
-            print(f"Department: {asset.get('department', 'Not recorded')}")
-            print(f"Location: {asset.get('location', 'Not recorded')}")
-            print(f"Status: {asset.get('status', 'Not recorded')}")
-            print("-" * 30)
+            # Normal search by Asset ID or Name
+            else:
+                search_lower = search_term.lower()
 
-            found = True
+                match = (
+                    search_lower in asset_id.lower()
+                    or search_lower in str(asset_name or "").lower()
+                )
 
-    if not found:
-        print("No matching asset found.")
+            if match:
+                print("\nAsset Found:")
+                print(f"Asset ID: {asset.get('asset_id')}")
+                print(f"Name: {asset_name}")
+                print(f"Category: {asset.get('category')}")
+                print(f"Value: {asset.get('value')}")
+                print(f"Department: {asset.get('department')}")
+                print(f"Location: {asset.get('location')}")
+                print(f"Status: {asset.get('status')}")
+                print("-" * 30)
+
+                found = True
+
+        if not found:
+            print("No matching assets found.")
+
+def filter_assets(assets):
+    while True:
+        print("\n--- Filter Assets ---")
+        print("1. Department")
+        print("2. Location")
+        print("3. Category")
+        print("4. Status")
+        print("C. Return to Main Menu")
+
+        filter_choice = input("Enter filter choice: ").strip().lower()
+
+        if filter_choice == "c":
+            return
+
+        if filter_choice == "1":
+            field = "department"
+        elif filter_choice == "2":
+            field = "location"
+        elif filter_choice == "3":
+            field = "category"
+        elif filter_choice == "4":
+            field = "status"
+        else:
+            print("Invalid filter choice.")
+            continue
+
+
+
+
+
+        filter_value = input(
+            f"Enter {field} to filter "
+            "(Enter for None, C to return): "
+        ).strip()
+
+        if filter_value.lower() == "c":
+            continue
+
+        found = False
+
+        for asset in assets:
+            asset_value = asset.get(field)
+
+            # Empty input or "none" finds missing/blank values
+            if filter_value == "" or filter_value.lower() == "none":
+                match = asset_value is None or str(asset_value).strip() == ""
+            else:
+                match = filter_value.lower() in str(asset_value or "").lower()
+
+            if match:
+                print("\nAsset Found:")
+                print(f"Asset ID: {asset.get('asset_id')}")
+                print(f"Name: {asset.get('asset_name') or asset.get('name')}")
+                print(f"Category: {asset.get('category')}")
+                print(f"Value: {asset.get('value')}")
+                print(f"Department: {asset.get('department')}")
+                print(f"Location: {asset.get('location')}")
+                print(f"Status: {asset.get('status')}")
+                print("-" * 30)
+
+                found = True
+
+        if not found:
+            print("No matching assets found.")
+
+
+
+
+
+        if filter_value.lower() == "c":
+            continue
+
+        filter_value = filter_value.lower()
+        found = False
+
+        for asset in assets:
+            asset_value = str(asset.get(field, "")).lower()
+
+            if filter_value in asset_value:
+                print("\nAsset Found:")
+                print(f"Asset ID: {asset.get('asset_id')}")
+                print(
+                    f"Name: "
+                    f"{asset.get('asset_name') or asset.get('name')}"
+                )
+                print(f"Category: {asset.get('category')}")
+                print(f"Value: {asset.get('value')}")
+                print(f"Department: {asset.get('department')}")
+                print(f"Location: {asset.get('location')}")
+                print(f"Status: {asset.get('status')}")
+                print("-" * 30)
+
+                found = True
+
+        if not found:
+            print("No matching assets found.")
 
 def main():
     assets = load_assets()
@@ -533,6 +644,9 @@ def main():
             search_asset(assets)
 
         elif choice == "6":
+            filter_assets(assets)
+
+        elif choice == "7":
             print("Exiting program...")
             break
 
