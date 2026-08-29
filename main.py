@@ -27,7 +27,9 @@ def show_menu():
     print("4. Delete Asset")
     print("5. Search Asset")
     print("6. Filter Assets")
-    print("7. Exit")
+    print("7. Asset Summary Report")
+    print("8. Department Summary")
+    print("9. Exit")
 
 def edit_asset(assets):
     if not assets:
@@ -619,6 +621,123 @@ def filter_assets(assets):
         if not found:
             print("No matching assets found.")
 
+def asset_summary(assets):
+    total_assets = len(assets)
+
+    total_value = 0
+    active_count = 0
+    active_value = 0
+    disposed_count = 0
+    disposed_value = 0
+    no_status_count = 0
+    no_status_value = 0
+
+    for asset in assets:
+        value = asset.get("value") or 0
+
+        try:
+            value = float(value)
+        except (ValueError, TypeError):
+            value = 0
+        
+        status = str(asset.get("status") or "").lower()
+
+        total_value += value
+
+        if status == "active":
+            active_count += 1
+            active_value += value
+
+        elif status == "disposed":
+            disposed_count += 1
+            disposed_value += value
+
+        else:
+            no_status_count += 1
+            no_status_value += value
+
+    print("\n--- Asset Summary Report ---")
+    print(f"Total Assets: {total_assets}")
+    print(f"Total Value: {total_value:,.2f}")
+    print("-" * 30)
+    print(f"Active Assets: {active_count}")
+    print(f"Active Value: {active_value:,.2f}")
+    print("-" * 30)
+    print(f"Disposed Assets: {disposed_count}")
+    print(f"Disposed Value: {disposed_value:,.2f}")
+    print("-" * 30)
+    print(f"Status Not Recorded: {no_status_count}")
+    print(f"Value Not Classified: {no_status_value:,.2f}")
+    print("-" * 30)
+
+# Control Check
+    count_check = active_count + disposed_count + no_status_count
+    value_check = active_value + disposed_value + no_status_value
+
+    if count_check == total_assets and value_check == total_value:
+        print("Control Check: OK")
+    else:
+        print("Control Check: ERROR")
+
+    input("Press Enter to return to Main Menu...")
+
+def department_summary(assets):
+    departments = {}
+
+    for asset in assets:
+        department = asset.get("department")
+
+        if department is None or str(department).strip() == "":
+            department = "None"
+
+        value = asset.get("value") or 0
+
+        try:
+            value = float(value)
+        except (ValueError, TypeError):
+            value = 0
+
+        if department not in departments:
+            departments[department] = {
+                "count": 0,
+                "value": 0
+            }
+
+        departments[department]["count"] += 1
+        departments[department]["value"] += value
+
+    print("\n--- Department-wise Asset Summary ---")
+    print(f"{'Department':<20} {'Assets':>8} {'Value':>18}")
+    print("-" * 48)
+
+    total_count = 0
+    total_value = 0
+
+    for department, data in departments.items():
+        print(
+            f"{department:<20} "
+            f"{data['count']:>8} "
+            f"{data['value']:>18,.2f}"
+        )
+
+        total_count += data["count"]
+        total_value += data["value"]
+
+    print("-" * 48)
+    print(
+        f"{'TOTAL':<20} "
+        f"{total_count:>8} "
+        f"{total_value:>18,.2f}"
+    )
+
+    if total_count == len(assets):
+        print("Control Check: OK")
+    else:
+        print("Control Check: ERROR")
+
+    input("\nPress Enter to return to Main Menu...")
+
+
 def main():
     assets = load_assets()
     assets = migrate_asset_ids(assets)
@@ -647,6 +766,12 @@ def main():
             filter_assets(assets)
 
         elif choice == "7":
+            asset_summary(assets)
+
+        elif choice == "8":
+            department_summary(assets)
+
+        elif choice == "9":
             print("Exiting program...")
             break
 
