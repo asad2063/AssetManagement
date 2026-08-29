@@ -1,7 +1,7 @@
 import re 
 import json
 import os
-from datetime import datetime
+from datetime import datetime, date
 
 DATA_FILE = "assets.json"
 COUNTER_FILE = "asset_counter.json"
@@ -27,9 +27,8 @@ def show_menu():
     print("4. Delete Asset")
     print("5. Search Asset")
     print("6. Filter Assets")
-    print("7. Asset Summary Report")
-    print("8. Department Summary")
-    print("9. Exit")
+    print("7. Reports")
+    print("8. Exit")
 
 def edit_asset(assets):
     if not assets:
@@ -117,6 +116,52 @@ def edit_asset(assets):
 
         print("Please enter Active or Disposed.")
 
+# Edit the Purchase Date
+    while True:
+        current_purchase_date = (
+            selected_asset.get("purchase_date")
+            or "Not recorded"
+        )
+
+        new_purchase_date = input(
+            f"Purchase Date [{current_purchase_date}] "
+            "(DD-MM-YYYY): "
+        ).strip()
+
+        if new_purchase_date.lower() == "c":
+            print("Edit cancelled.")
+            return
+
+        # Blank = keep existing date
+        if not new_purchase_date:
+            break
+
+        if not re.fullmatch(r"\d{2}-\d{2}-\d{4}", new_purchase_date):
+            print(
+                "Please enter the date exactly in DD-MM-YYYY format, "
+                "for example 23-04-2024."
+            )
+            continue
+
+        try:
+            purchase_date_obj = datetime.strptime(
+                new_purchase_date,
+                "%d-%m-%Y"
+            ).date()
+
+        except ValueError:
+            print(
+                "Please enter a valid date in DD-MM-YYYY format, "
+                "for example 01-01-2026."
+            )
+            continue
+
+        if purchase_date_obj > date.today():
+            print("Purchase date cannot be in the future.")
+            continue
+
+        break
+
 # Edit the Value
     while True:
         new_value_text = input(
@@ -160,6 +205,7 @@ def edit_asset(assets):
     print(f"Department: "f"{new_department or selected_asset.get('department', 'Not recorded')}")
     print(f"Location: "f"{new_location or selected_asset.get('location', 'Not recorded')}")
     print(f"Status: "f"{new_status or selected_asset.get('status', 'Not recorded')}")
+    print(f"Purchase Date: "f"{new_purchase_date or selected_asset.get('purchase_date') or 'Not recorded'}")
     print(f"Value: {new_value or selected_asset['value']}")
 
     confirm = input("\nSave changes? (Y/N): ").strip().lower()
@@ -176,11 +222,14 @@ def edit_asset(assets):
 
     if new_department:
         selected_asset["department"] = new_department
-
     if new_location:
         selected_asset["location"] = new_location
 
-        
+    if new_status:
+        selected_asset["status"] = new_status
+
+    if new_purchase_date:
+        selected_asset["purchase_date"] = new_purchase_date        
 
     if new_value:
         selected_asset["value"] = new_value
@@ -188,6 +237,7 @@ def edit_asset(assets):
     save_assets(assets)
 
     print("Asset updated successfully.")
+
 
 def get_valid_date(prompt):
     while True:
@@ -197,7 +247,15 @@ def get_valid_date(prompt):
             return None
 
         try:
-            valid_date = datetime.strptime(date_text, "%d-%m-%Y")
+            valid_date = datetime.strptime(
+                date_text,
+                "%d-%m-%Y"
+            ).date()
+
+            if valid_date > date.today():
+                print("Purchase date cannot be in the future.")
+                continue
+
             return valid_date.strftime("%d-%m-%Y")
 
         except ValueError:
@@ -270,6 +328,7 @@ def add_asset(assets):
         print("Please enter Active or Disposed.")
 
     # Purchase date
+
     purchase_date = get_valid_date("Enter purchase date (DD-MM-YYYY): ")
 
     if purchase_date is None:
@@ -679,7 +738,7 @@ def asset_summary(assets):
     else:
         print("Control Check: ERROR")
 
-    input("Press Enter to return to Main Menu...")
+    input("Press Enter to return to Report Menu...")
 
 def department_summary(assets):
     departments = {}
@@ -735,7 +794,220 @@ def department_summary(assets):
     else:
         print("Control Check: ERROR")
 
-    input("\nPress Enter to return to Main Menu...")
+    input("\nPress Enter to return to Report Menu...")
+
+
+
+def location_summary(assets):
+    locations = {}
+
+    for asset in assets:
+        location = asset.get("location")
+
+        if location is None or str(location).strip() == "":
+            location = "None"
+
+        value = asset.get("value") or 0
+
+        try:
+            value = float(value)
+        except (ValueError, TypeError):
+            value = 0
+
+        if location not in locations:
+            locations[location] = {
+                "count": 0,
+                "value": 0
+            }
+
+        locations[location]["count"] += 1
+        locations[location]["value"] += value
+
+    print("\n--- Location-wise Asset Summary ---")
+    print(f"{'Location':<20} {'Assets':>8} {'Value':>18}")
+    print("-" * 48)
+
+    total_count = 0
+    total_value = 0
+
+    for location, data in locations.items():
+        print(
+            f"{location:<20} "
+            f"{data['count']:>8} "
+            f"{data['value']:>18,.2f}"
+        )
+
+        total_count += data["count"]
+        total_value += data["value"]
+
+    print("-" * 48)
+    print(
+        f"{'TOTAL':<20} "
+        f"{total_count:>8} "
+        f"{total_value:>18,.2f}"
+    )
+
+    if total_count == len(assets):
+        print("Control Check: OK")
+    else:
+        print("Control Check: ERROR")
+
+    input("\nPress Enter to return to Report Menu...")
+
+
+
+def category_summary(assets):
+    categories = {}
+
+    for asset in assets:
+
+
+        category = asset.get("category")
+
+        if category is None or str(category).strip() == "":
+            category = "None"
+        else:
+            category = str(category).strip().title()
+        value = asset.get("value") or 0
+
+        try:
+            value = float(value)
+        except (ValueError, TypeError):
+            value = 0
+
+        if category not in categories:
+            categories[category] = {
+                "count": 0,
+                "value": 0
+            }
+
+        categories[category]["count"] += 1
+        categories[category]["value"] += value
+
+    print("\n--- Category-wise Asset Summary ---")
+    print(f"{'Category':<20} {'Assets':>8} {'Value':>18}")
+    print("-" * 48)
+
+    total_count = 0
+    total_value = 0
+
+    for category, data in categories.items():
+        print(
+            f"{category:<20} "
+            f"{data['count']:>8} "
+            f"{data['value']:>18,.2f}"
+        )
+
+        total_count += data["count"]
+        total_value += data["value"]
+
+    print("-" * 48)
+    print(
+        f"{'TOTAL':<20} "
+        f"{total_count:>8} "
+        f"{total_value:>18,.2f}"
+    )
+
+    if total_count == len(assets):
+        print("Control Check: OK")
+    else:
+        print("Control Check: ERROR")
+
+    input("\nPress Enter to return to Report Menu...")
+
+
+
+def status_summary(assets):
+    statuses = {}
+
+    for asset in assets:
+
+
+        status = asset.get("status")
+
+        if status is None or str(status).strip() == "":
+            status = "None"
+        else:
+            status = str(status).strip().title()
+        value = asset.get("value") or 0
+
+        try:
+            value = float(value)
+        except (ValueError, TypeError):
+            value = 0
+
+        if status not in statuses:
+            statuses[status] = {
+                "count": 0,
+                "value": 0
+            }
+
+        statuses[status]["count"] += 1
+        statuses[status]["value"] += value
+
+    print("\n--- Status-wise Asset Summary ---")
+    print(f"{'Status':<20} {'Assets':>8} {'Value':>18}")
+    print("-" * 48)
+
+    total_count = 0
+    total_value = 0
+
+    for status, data in statuses.items():
+        print(
+            f"{status:<20} "
+            f"{data['count']:>8} "
+            f"{data['value']:>18,.2f}"
+        )
+
+        total_count += data["count"]
+        total_value += data["value"]
+
+    print("-" * 48)
+    print(
+        f"{'TOTAL':<20} "
+        f"{total_count:>8} "
+        f"{total_value:>18,.2f}"
+    )
+
+    if total_count == len(assets):
+        print("Control Check: OK")
+    else:
+        print("Control Check: ERROR")
+
+    input("\nPress Enter to return to Reports Menu...")
+
+def reports_menu(assets):
+    while True:
+        print("\n--- Reports Menu ---")
+        print("1. Overall Asset Summary")
+        print("2. Department Summary")
+        print("3. Location Summary")
+        print("4. Category Summary")
+        print("5. Status Summary")
+        print("C. Return to Main Menu")
+
+        choice = input("Enter your choice: ").strip().lower()
+
+        if choice == "1":
+            asset_summary(assets)
+
+        elif choice == "2":
+            department_summary(assets)
+
+        elif choice == "3":
+            location_summary(assets)
+
+        elif choice == "4":
+            category_summary(assets)
+
+        elif choice == "5":
+            status_summary(assets)
+
+        elif choice == "c":
+            return
+
+        else:
+            print("Invalid choice.")
 
 
 def main():
@@ -766,12 +1038,9 @@ def main():
             filter_assets(assets)
 
         elif choice == "7":
-            asset_summary(assets)
+            reports_menu(assets)
 
         elif choice == "8":
-            department_summary(assets)
-
-        elif choice == "9":
             print("Exiting program...")
             break
 
