@@ -21,12 +21,12 @@ def save_assets(assets):
         json.dump(assets, file, indent=4)
 
 def show_menu():
-    print("\n--- Asset Management System ---")
     print("1. Add Asset")
     print("2. List Assets")
     print("3. Edit Asset")
     print("4. Delete Asset")
-    print("5. Exit")
+    print("5. Search Asset")
+    print("6. Exit")
 
 def edit_asset(assets):
     if not assets:
@@ -473,6 +473,41 @@ def initialize_asset_counter(assets):
             indent=4
         )
 
+def search_asset(assets):
+    search_term = input(
+        "Enter Asset ID or Asset Name to search: "
+    ).strip().lower()
+
+    found = False
+
+    for asset in assets:
+        asset_id = str(asset.get("asset_id", "")).lower()
+
+        # Support both possible name fields
+        asset_name = str(
+            asset.get("asset_name") or asset.get("name") or ""
+        ).lower()
+
+        if search_term in asset_id or search_term in asset_name:
+
+            print("\nAsset Found:")
+            print(f"Asset ID: {asset.get('asset_id', 'Not recorded')}")
+            print(
+                f"Name: "
+                f"{asset.get('asset_name') or asset.get('name') or 'Not recorded'}"
+            )
+            print(f"Category: {asset.get('category', 'Not recorded')}")
+            print(f"Value: {asset.get('value', 'Not recorded')}")
+            print(f"Department: {asset.get('department', 'Not recorded')}")
+            print(f"Location: {asset.get('location', 'Not recorded')}")
+            print(f"Status: {asset.get('status', 'Not recorded')}")
+            print("-" * 30)
+
+            found = True
+
+    if not found:
+        print("No matching asset found.")
+
 def main():
     assets = load_assets()
     assets = migrate_asset_ids(assets)
@@ -495,6 +530,9 @@ def main():
             delete_asset(assets)
 
         elif choice == "5":
+            search_asset(assets)
+
+        elif choice == "6":
             print("Exiting program...")
             break
 
