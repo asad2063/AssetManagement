@@ -71,6 +71,49 @@ def edit_asset(assets):
             print("Edit cancelled.")
             return
 
+# Edit the Department
+    new_department = input(
+        f"Department [{selected_asset.get('department', 'Not recorded')}]: "
+    ).strip()
+
+    if new_department.lower() == "c":
+        print("Edit cancelled.")
+        return
+
+    # Edit the Location
+    new_location = input(
+        f"Location [{selected_asset.get('location', 'Not recorded')}]: "
+    ).strip()
+
+    if new_location.lower() == "c":
+        print("Edit cancelled.")
+        return
+
+    # Edit the status
+    while True:
+        current_status = selected_asset.get("status", " Not recorded")
+
+        new_status = input(
+            f"Status [{current_status}] (Active/Disposed): "
+        ).strip()
+
+        if new_status.lower() == "c":
+            print("Edit cancelled.")
+            return
+
+        if not new_status:
+            break
+
+        if new_status.lower() == "active":
+            new_status = "Active"
+            break
+
+        if new_status.lower() == "disposed":
+            new_status = "Disposed"
+            break
+
+        print("Please enter Active or Disposed.")
+
 # Edit the Value
     while True:
         new_value_text = input(
@@ -105,13 +148,15 @@ def edit_asset(assets):
             continue
 
         break
-    print("\nProposed changes:")
+
+# Review proposed changes
+    print("\n--- Review Proposed Changes ---")
     print(f"Asset ID: {selected_asset['asset_id']}")
     print(f"Name: {new_name or selected_asset['name']}")
-    print(
-        f"Category: "
-        f"{new_category or selected_asset['category']}"
-    )
+    print(f"Category: " f"{new_category or selected_asset['category']}")
+    print(f"Department: "f"{new_department or selected_asset.get('department', 'Not recorded')}")
+    print(f"Location: "f"{new_location or selected_asset.get('location', 'Not recorded')}")
+    print(f"Status: "f"{new_status or selected_asset.get('status', 'Not recorded')}")
     print(f"Value: {new_value or selected_asset['value']}")
 
     confirm = input("\nSave changes? (Y/N): ").strip().lower()
@@ -125,6 +170,14 @@ def edit_asset(assets):
 
     if new_category:
         selected_asset["category"] = new_category
+
+    if new_department:
+        selected_asset["department"] = new_department
+
+    if new_location:
+        selected_asset["location"] = new_location
+
+        
 
     if new_value:
         selected_asset["value"] = new_value
@@ -162,6 +215,7 @@ def add_asset(assets):
         print("Asset name cannot be blank.")
         return
 
+
     # Category
     category = input("Enter category: ").strip()
 
@@ -173,9 +227,47 @@ def add_asset(assets):
         print("Category cannot be blank.")
         return
 
-    purchase_date = get_valid_date(
-        "Enter purchase date (DD-MM-YYYY): "
-    )
+    # Department
+    department = input("Enter department: ").strip()
+
+    if department.lower() == "c":
+        print("Asset entry cancelled.")
+        return
+
+    if not department:
+        print("Department cannot be blank.")
+        return
+
+    # Location
+    location = input("Enter location: ").strip()
+
+    if location.lower() == "c":
+        print("Asset entry cancelled.")
+        return
+
+    if not location:
+        print("Location cannot be blank.")
+        return
+
+    while True:
+        status = input("Enter status (Active/Disposed): ").strip()
+
+        if status.lower() == "c":
+            print("Asset entry cancelled.")
+            return
+
+        if status.lower() == "active":
+            status = "Active"
+            break
+
+        if status.lower() == "disposed":
+            status = "Disposed"
+            break
+
+        print("Please enter Active or Disposed.")
+
+    # Purchase date
+    purchase_date = get_valid_date("Enter purchase date (DD-MM-YYYY): ")
 
     if purchase_date is None:
         print("Asset entry cancelled.")
@@ -216,6 +308,9 @@ def add_asset(assets):
     print("\nPlease review the asset:")
     print(f"Name: {asset_name}")
     print(f"Category: {category}")
+    print(f"Department: {department}")
+    print(f"Location: {location}")
+    print(f"Status: {status}")
     print(f"Purchase Date: {purchase_date}")
     print(f"Value: {value:,.2f}")
 
@@ -230,6 +325,9 @@ def add_asset(assets):
         "asset_id": generate_asset_id(),
         "name": asset_name,
         "category": category,
+        "department": department,
+        "location": location,
+        "status": status,
         "purchase_date": purchase_date,
         "value": value
     }
@@ -274,6 +372,9 @@ def list_assets(assets):
         print(f"Asset ID: {asset.get('asset_id', 'Old Record')}")
         print(f"Name: {asset['name']}")
         print(f"Category: {asset['category']}")
+        print(f"Department: " f"{asset.get('department', 'Not recorded')}")
+        print(f"Location: " f"{asset.get('location', 'Not recorded')}")
+        print(f"Status: {asset.get('status', 'Not recorded')}") 
         print(f"Purchase Date: " f"{asset.get('purchase_date', 'Not recorded')}")
         print(f"Value: {asset['value']}")
 
