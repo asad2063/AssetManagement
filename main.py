@@ -1,26 +1,24 @@
 import re 
-import json
-import os
 from datetime import datetime, date
 
-DATA_FILE = "assets.json"
-COUNTER_FILE = "asset_counter.json"
+from database import (
+    get_next_asset_id,
+    get_department_summary,
+    initialize_asset_counter_db,
+    create_database,
+    get_all_assets,
+    add_asset_db,
+    update_asset_db,
+    delete_asset_db,
+    get_asset_count,
+    get_total_asset_value
+)
 
-def load_assets():
-    if os.path.exists(DATA_FILE):
-        try:
-            with open(DATA_FILE, "r") as file:
-                return json.load(file)
-        except json.JSONDecodeError:
-            return []
-    else:
-        return []
-
-def save_assets(assets):
-    with open(DATA_FILE, "w") as file:
-        json.dump(assets, file, indent=4)
+create_database()
+initialize_asset_counter_db(14)
 
 def show_menu():
+
     print("1. Add Asset")
     print("2. List Assets")
     print("3. Edit Asset")
@@ -97,7 +95,7 @@ def edit_asset(assets):
 
         new_status = input(
             f"Status [{current_status}] (Active/Disposed): "
-        ).strip()
+            ).strip()
 
         if new_status.lower() == "c":
             print("Edit cancelled.")
@@ -206,7 +204,7 @@ def edit_asset(assets):
     print(f"Location: "f"{new_location or selected_asset.get('location', 'Not recorded')}")
     print(f"Status: "f"{new_status or selected_asset.get('status', 'Not recorded')}")
     print(f"Purchase Date: "f"{new_purchase_date or selected_asset.get('purchase_date') or 'Not recorded'}")
-    print(f"Value: {new_value or selected_asset['value']}")
+    print(f"Value: {new_value or selected_asset['value']:,.2f}")
 
     confirm = input("\nSave changes? (Y/N): ").strip().lower()
 
@@ -234,10 +232,10 @@ def edit_asset(assets):
     if new_value:
         selected_asset["value"] = new_value
 
-    save_assets(assets)
+    update_asset_db(selected_asset)
+#   
 
     print("Asset updated successfully.")
-
 
 def get_valid_date(prompt):
     while True:
@@ -393,34 +391,12 @@ def add_asset(assets):
         "purchase_date": purchase_date,
         "value": value
     }
-
-    assets.append(asset)
-    save_assets(assets)
+    add_asset_db(asset)
 
     print(f"Asset {asset['asset_id']} added successfully.")
 
 def generate_asset_id():
-    last_number = 0
-
-    if os.path.exists(COUNTER_FILE):
-        try:
-            with open(COUNTER_FILE, "r") as file:
-                counter_data = json.load(file)
-                last_number = counter_data.get("last_number", 0)
-
-        except (json.JSONDecodeError, OSError):
-            last_number = 0
-
-    next_number = last_number + 1
-
-    with open(COUNTER_FILE, "w") as file:
-        json.dump(
-            {"last_number": next_number},
-            file,
-            indent=4
-        )
-
-    return f"AST-{next_number:04d}"
+    return get_next_asset_id()
 
 def list_assets(assets):
     if not assets:
@@ -470,70 +446,20 @@ def delete_asset(assets):
     print(f"Asset ID: {selected_asset['asset_id']}")
     print(f"Name: {selected_asset['name']}")
     print(f"Category: {selected_asset['category']}")
-    print(f"Value: {selected_asset['value']}")
+    print(f"Value: {selected_asset['value']:,.2f}")
 
     confirm = input(
         "\nAre you sure you want to delete this asset? (Y/N): "
     ).strip().lower()
 
     if confirm == "y":
-        assets.remove(selected_asset)
-        save_assets(assets)
+        delete_asset_db(selected_asset["asset_id"])
+#       assets.remove(selected_asset)
+#       
 
         print(f"Asset {asset_id} deleted successfully.")
     else:
         print("Deletion cancelled.")
-
-def migrate_asset_ids(assets):
-    changed = False
-
-    existing_numbers = []
-
-    for asset in assets:
-        asset_id = asset.get("asset_id")
-
-        if asset_id:
-            number = int(asset_id.split("-")[1])
-            existing_numbers.append(number)
-
-    next_number = max(existing_numbers, default=0) + 1
-
-    for asset in assets:
-        if not asset.get("asset_id"):
-            asset["asset_id"] = f"AST-{next_number:04d}"
-            next_number += 1
-            changed = True
-
-    if changed:
-        save_assets(assets)
-
-    return assets
-
-def initialize_asset_counter(assets):
-    if os.path.exists(COUNTER_FILE):
-        return
-
-    highest_number = 0
-
-    for asset in assets:
-        asset_id = asset.get("asset_id")
-
-        if asset_id:
-            try:
-                number = int(asset_id.split("-")[1])
-
-                if number > highest_number:
-                    highest_number = number
-
-            except (ValueError, IndexError):
-                pass
-
-    with open(COUNTER_FILE, "w") as file:
-        json.dump(
-            {"last_number": highest_number},
-            file,
-            indent=4
-        )
 
 def search_asset(assets):
     while True:
@@ -572,7 +498,7 @@ def search_asset(assets):
                 print(f"Asset ID: {asset.get('asset_id')}")
                 print(f"Name: {asset_name}")
                 print(f"Category: {asset.get('category')}")
-                print(f"Value: {asset.get('value')}")
+                print(f"Value: {asset.get('value'):,.2f}")
                 print(f"Department: {asset.get('department')}")
                 print(f"Location: {asset.get('location')}")
                 print(f"Status: {asset.get('status')}")
@@ -728,7 +654,7 @@ def asset_summary(assets):
     print(f"Status Not Recorded: {no_status_count}")
     print(f"Value Not Classified: {no_status_value:,.2f}")
     print("-" * 30)
-
+    
 # Control Check
     count_check = active_count + disposed_count + no_status_count
     value_check = active_value + disposed_value + no_status_value
@@ -740,30 +666,9 @@ def asset_summary(assets):
 
     input("Press Enter to return to Report Menu...")
 
-def department_summary(assets):
-    departments = {}
+def department_summary():
 
-    for asset in assets:
-        department = asset.get("department")
-
-        if department is None or str(department).strip() == "":
-            department = "None"
-
-        value = asset.get("value") or 0
-
-        try:
-            value = float(value)
-        except (ValueError, TypeError):
-            value = 0
-
-        if department not in departments:
-            departments[department] = {
-                "count": 0,
-                "value": 0
-            }
-
-        departments[department]["count"] += 1
-        departments[department]["value"] += value
+    results = get_department_summary()
 
     print("\n--- Department-wise Asset Summary ---")
     print(f"{'Department':<20} {'Assets':>8} {'Value':>18}")
@@ -772,15 +677,15 @@ def department_summary(assets):
     total_count = 0
     total_value = 0
 
-    for department, data in departments.items():
+    for department, count, value in results:
         print(
             f"{department:<20} "
-            f"{data['count']:>8} "
-            f"{data['value']:>18,.2f}"
+            f"{count:>8} "
+            f"{value:>18,.2f}"
         )
 
-        total_count += data["count"]
-        total_value += data["value"]
+        total_count += count
+        total_value += value
 
     print("-" * 48)
     print(
@@ -789,14 +694,12 @@ def department_summary(assets):
         f"{total_value:>18,.2f}"
     )
 
-    if total_count == len(assets):
+    if total_count == get_asset_count():
         print("Control Check: OK")
     else:
         print("Control Check: ERROR")
 
     input("\nPress Enter to return to Report Menu...")
-
-
 
 def location_summary(assets):
     locations = {}
@@ -853,8 +756,6 @@ def location_summary(assets):
         print("Control Check: ERROR")
 
     input("\nPress Enter to return to Report Menu...")
-
-
 
 def category_summary(assets):
     categories = {}
@@ -914,8 +815,6 @@ def category_summary(assets):
         print("Control Check: ERROR")
 
     input("\nPress Enter to return to Report Menu...")
-
-
 
 def status_summary(assets):
     statuses = {}
@@ -977,7 +876,10 @@ def status_summary(assets):
     input("\nPress Enter to return to Reports Menu...")
 
 def reports_menu(assets):
+    
     while True:
+        print(f"\nTotal assets in database: {get_asset_count()}")
+        print(f"Total asset value: {get_total_asset_value():,.2f}")
         print("\n--- Reports Menu ---")
         print("1. Overall Asset Summary")
         print("2. Department Summary")
@@ -992,7 +894,7 @@ def reports_menu(assets):
             asset_summary(assets)
 
         elif choice == "2":
-            department_summary(assets)
+            department_summary()
 
         elif choice == "3":
             location_summary(assets)
@@ -1010,35 +912,43 @@ def reports_menu(assets):
             print("Invalid choice.")
 
 
+
 def main():
-    assets = load_assets()
-    assets = migrate_asset_ids(assets)
-    initialize_asset_counter(assets)
+    create_database()
     while True:
         show_menu()
 
         choice = input("Enter your choice: ")
 
         if choice == "1":
-            add_asset(assets)
+           db_assets = get_all_assets()
+           add_asset(db_assets)
+        
 
         elif choice == "2":
-            list_assets(assets)
+            db_assets = get_all_assets()
+            list_assets(db_assets)
+
 
         elif choice == "3":
-            edit_asset(assets)
+            db_assets = get_all_assets()
+            edit_asset(db_assets)
 
         elif choice == "4":
-            delete_asset(assets)
+            db_assets = get_all_assets()
+            delete_asset(db_assets)
 
         elif choice == "5":
-            search_asset(assets)
+            db_assets = get_all_assets()
+            search_asset(db_assets)
 
         elif choice == "6":
-            filter_assets(assets)
+            db_assets = get_all_assets()
+            filter_assets(db_assets)
 
         elif choice == "7":
-            reports_menu(assets)
+            db_assets = get_all_assets()
+            reports_menu(db_assets)
 
         elif choice == "8":
             print("Exiting program...")

@@ -1,6 +1,6 @@
 # Asset Management data files
 assets.json
-asset_counter.json
+assets.db
 
 # Python cache files
 __pycache__/
