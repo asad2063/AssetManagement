@@ -34,6 +34,25 @@ def create_database():
     connection.commit()
     connection.close()
 
+def create_categories_table():
+    connection = sqlite3.connect(DB_NAME)
+    cursor = connection.cursor()
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS categories (
+            category_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            category_name TEXT NOT NULL UNIQUE,
+            depreciation_method TEXT,
+            depreciation_rate REAL,
+            useful_life_years REAL,
+            is_depreciable INTEGER NOT NULL DEFAULT 1,
+            active INTEGER NOT NULL DEFAULT 1
+        )
+    """)
+
+    connection.commit()
+    connection.close()
+
 def initialize_asset_counter_db(last_number):
     connection = sqlite3.connect(DB_NAME)
     cursor = connection.cursor()
