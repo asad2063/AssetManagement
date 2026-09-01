@@ -535,6 +535,22 @@ Before adding a major field or function, consideration should be given to:
 9. Does it require an audit trail?
 10. Will it require authorization or managerial approval?
 
+## Version 1.1
+
+Finalized Version 1 asset master design.
+
+Added:
+
+- Optional-but-controlled Asset Identification Code
+- Custodian Master concept
+- Custodian email and future reminder requirements
+- Warranty End Date
+- Centralized date and amount policies
+- Truncation rather than rounding
+- Configurable depreciation methods
+- Relational database design principles
+
+
 ---
 
 # 20. REQUIREMENTS CHANGE LOG
